@@ -76,6 +76,47 @@ def dividedata(X, n):
 
 	return nodes
 
+def mediafederada(nodes):
+
+	print('\n Calculamos la media federada')
+
+	N = 0
+	fedmean = 0
+
+	for x in nodes:
+		m = np.sum(x)
+		n = len(x)
+		N += n
+
+		fedmean = fedmean + (m)
+
+		print('  Sumatorio ' + str(m) + ', ' + str(n) + ' elementos')
+
+	fedmean = fedmean/N
+	print('\n La media federada es ' + str(fedmean))
+
+
+def covarianzafederada(nodes, fedmean):
+
+	print('\n Calculamos la covarianza federada')
+
+	N = 0
+	fedQ = 0
+
+	for x in nodes:
+
+		n = len(x)
+		N += n
+
+		X1 = (x - fedmean)
+		X2 =  np.transpose(x - fedmean)
+
+		fedQ = fedQ + np.dot(X2, X1)
+
+	print('\n')
+	print(fedQ/(N-1))
+
+
 
 
 print('\n\n' + ' '*30 + 'I R I S    D A T A S E T')
@@ -88,7 +129,7 @@ df = pd.read_csv('iris.csv', names=['lng sepalo','anch sepalo','lng petalo','anc
 
 
 # Separamos la variables predictoras de las de clase
-X = df.iloc[0:30, 0:4].values
+X = df.iloc[0:30, 0:1].values
 # X = df.iloc[:, 0:4].values
 # Y = df.iloc[:, 4].values
 
@@ -97,8 +138,50 @@ n, x_mean, Q = infodata(X)
 eigenv(Q)
 
 
-print('\n'*3 + '·'*50 + '\n· CASO 1. MEDIA CONOCIDA\n' + '·'*50)
+print('\n'*3 + '·'*50 + '\n· CASO 1. MEDIA CONOCIDA (' + str(float(x_mean)) + ')\n' + '·'*50)
 clientes = dividedata(X, 3)
+covarianzafederada(clientes, x_mean)
+
+'''
+print('\n'*3 + '·'*50 + '\n· CASO 2. MEDIA DESCONOCIDA (?)\n' + '·'*50)
+clientes = dividedata(X, 3)
+mediafederada(clientes)
+
+
+print(' \n\n' + ':'*30)
+
+x1 = X[0:10, :]
+x2 = X[10:20, :]
+x3 = X[20:30, :]
+
+a = []
+a.append(x1)
+a.append(x2)
+a.append(x3)
+
+for x in a:
+	print('\n Grupo ')
+	print(x)
+	print(' con media ' + str(x.mean(0)) + ' y tamaño ' + str(len(x)))
+
+x1m =x1.mean(0)
+x2m =x2.mean(0)
+x3m =x3.mean(0)
+
+x1n = len(x1)
+x2n = len(x2)
+x3n = len(x3)
+
+mediaf = ((x1m*x1n)+(x2m*x2n)+(x3m*x3n))/(x1n+x2n+x3n)
+
+print('\n\n La media tiene que ser: ' + str(x_mean))
+print(' y sale ' + str(mediaf))
+
+
+print('\n'*3 + '·'*50 + '\n· CASO 2. MEDIA DESCONOCIDA\n' + '·'*50)
+clientes = dividedata(X, 3)
+'''
+
 
 
 
