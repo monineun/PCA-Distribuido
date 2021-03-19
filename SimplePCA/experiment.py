@@ -44,7 +44,7 @@ def eigenv(Q, dbg=True):
 
 	if dbg:
 
-		print('\n\nEIGENVALUES & EIGENVECTORS\n' + '·'*50)
+		print('\nEIGENVALUES & EIGENVECTORS\n' + '·'*50)
 		
 		print('\n Autovalores:')
 		for i in eig_pairs:
@@ -60,9 +60,10 @@ def eigenv(Q, dbg=True):
 
 
 # Divide los datos de X en N grupos de tamaño aleatorio
-def dividedata(X, N, dbg=True):
+def dividedata(X, y, N, dbg=True):
 	
-	nodes = []
+	nodes  = []
+	labels = []
 
 	splt = sorted(random.sample(range(1, len(X)), N-1))
 	splt.insert(0,0)
@@ -76,6 +77,9 @@ def dividedata(X, N, dbg=True):
 		aux = X[init:end, :]
 		nodes.append(aux)
 
+		aux = y[init:end]
+		labels.append(aux)
+
 	if dbg:
 		print(' Repartimos los datos en ' + str(N) + ' grupos')
 
@@ -83,7 +87,7 @@ def dividedata(X, N, dbg=True):
 			print(' · Grupo ' + str(i) + ': ' + str(len(nodes[i])) + ' muestras')
 
 
-	return nodes
+	return nodes, labels
 
 
 # Calcula la media de manera federada
@@ -127,7 +131,7 @@ def federatedcov(nodes, fedmean, dbg=True):
 	fedQ = fedQ/(N-1)
 
 	if dbg:
-		print('\n Calculamos la covarianza federada')
+		print('\n Calculamos la matriz de covarianza federada')
 		print(fedQ)
 
 	return fedQ
@@ -143,27 +147,88 @@ print(' '*18 + '---------------------------------------------')
 # Leemos los datos
 df = pd.read_csv('iris.csv', names=['lng sepalo','anch sepalo','lng petalo','anch petalo','especie'])
 X = df.iloc[:, 0:4].values
-
+y = df.iloc[:, 4].values
 
 # Calculamos la media, covarianza y autovalores y autovectores de los datos
 mean, Q = infodata(X)
-eig_pairs, cum_var_exp = eigenv(Q)
+
 
 
 # Caso 1. Media conocida
 print('\n'*3 + '·'*50 + '\n· CASO 1. MEDIA CONOCIDA\n' + '·'*50)
-clientes = dividedata(X, 5)
-federatedcov(clientes, mean)
+clientes, etiquetas = dividedata(X, y, 3)
+Q1 = federatedcov(clientes, mean)
 
 
 # Caso 2. Media desconocida
-print('\n'*2 + '·'*50 + '\n· CASO 2. MEDIA DESCONOCIDA (?)\n' + '·'*50)
-clientes = dividedata(X, 5)
+print('\n'*2 + '·'*50 + '\n· CASO 2. MEDIA DESCONOCIDA\n' + '·'*50)
+clientes, etiquetas = dividedata(X, y, 3)
 fm = federatedmean(clientes)
-federatedcov(clientes, fm)
+Q2 = federatedcov(clientes, fm)
+
+
+'''
+# PCA para datos globales
+print('\n\n\nPCA - DATOS GLOBALES\n' + '¬'*50)
+eig_pairs, cum_var_exp = eigenv(Q)
+
+cpnumber = 2
+
+W = eig_pairs[0][1]
+
+for i in range(1, cpnumber):
+	W = np.vstack((W, eig_pairs[i][1]))
+
+W = W.transpose()
+
+print('\n Escogemos: ' + str(cpnumber) + ' componentes')
+print(W)
+
+
+
+# Transformamos los datos
+final_data = np.dot(X,W)
+
+
+# Visualizamos los datos
+for lab, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'),
+                    ('dodgerblue', 'gold', 'lawngreen')):
+    
+    plt.scatter(final_data[y==lab, 0],
+                final_data[y==lab, 1],
+                label=lab,
+               	marker = 'o',
+	            edgecolor='black',
+                c=col)
+
+plt.title('PCA Global - Iris Dataset')
+plt.xlabel('CP 1')
+plt.ylabel('CP 2')
+plt.legend(loc='lower center')
+plt.show()
 
 
 
 
+markers = ['X', '^', 'o']
 
+for i in range(len(clientes)):
 
+	final_data = np.dot(clientes[i],W)
+
+	# Visualizamos los datos
+	for lab, col in zip(('Iris-setosa', 'Iris-versicolor', 'Iris-virginica'),
+	                    ('dodgerblue', 'gold', 'lawngreen')):
+	    
+	    plt.scatter(final_data[etiquetas[i]==lab, 0],
+	                final_data[etiquetas[i]==lab, 1],
+	                marker = markers[i],
+	                edgecolor='black',
+	                c=col)
+
+plt.title('PCA Federado - Iris dataset')
+plt.xlabel('CP 1')
+plt.ylabel('CP 2')
+plt.legend(['Iris-setosa', 'Iris-versicolor', 'Iris-virginica'], loc='lower center')
+plt.show()
+'''
